@@ -21,6 +21,7 @@ class DataRecorder:
         rospy.init_node('amr_ki_training')
 
         self.folder_name = folder_name
+        self.counter = 1
 
         # --- Create the Subscriber to Twist commands
         self.subscriber_twist = rospy.Subscriber("/cmd_vel", Twist, self.update_twist)
@@ -55,12 +56,12 @@ class DataRecorder:
 
         rospy.logdebug(f"Received an image, processing...")
 
-        file_name = f"img_{self.throttle:.4f}_{self.steering:.4f}_{time.time()}.png"
-
+        file_name = f"img_{self.counter}_{self.throttle:.4f}_{self.steering:.4f}_{time.time()}.png"
         path = f"{self.base_path}{file_name}"
         m1 = time.time()
         cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')	
         cv2.imwrite(path, cv_image) 
+        self.counter += 1
         m2 = time.time()
         rospy.logdebug(f"Saved new image at {path}")
 
