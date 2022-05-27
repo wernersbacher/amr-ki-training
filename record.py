@@ -50,6 +50,9 @@ class DataRecorder:
         if FPS_SAVE != 0 and now - self.last_imgage_saved < 1/FPS_SAVE:
             rospy.logdebug("Skipping frame.")
             return
+
+        if self.throttle <= 0:  # only capturing frames if driving forwards (throttle > 0)
+            return
             
         self.last_imgage_saved = now
 
