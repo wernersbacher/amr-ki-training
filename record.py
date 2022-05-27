@@ -3,6 +3,7 @@ import random
 import cv2
 import time
 import os
+import json
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 from sensor_msgs.msg import Image
@@ -22,6 +23,8 @@ class DataRecorder:
 
         self.folder_name = folder_name
         self.counter = 1
+        self.avg_throttle = 0
+        self._avg_counter = 0
 
         # --- Create the Subscriber to Twist commands
         self.subscriber_twist = rospy.Subscriber("/cmd_vel", Twist, self.update_twist)
@@ -37,11 +40,17 @@ class DataRecorder:
 
         rospy.loginfo(f"Saving images in {self.base_path}. \n Stop with Strg+C")
 
+    def update_avg_throttle():
+        """ update the average throttle recorded"""
+        avg = (self.avg_throttle*self._avg_counter + self.throttle)/(self._avg_counter + 1)
+        self.avg_throttle = avg
+
 
     def update_twist(self, msg):
 
         self.throttle = msg.linear.x
         self.steering = msg.angular.z
+        self.update_avg_throttle()
         rospy.logdebug(f"Updated current throttle and steering to {self.throttle, self.steering}")
 
     def update_img(self, msg):
@@ -70,6 +79,19 @@ class DataRecorder:
 
         rospy.logdebug(f"Saving image took {m2-m1} seconds.")
 
+    def end(self):
+        """ called before recorded is ended"""
+        path = f"{self.base_path}info.txt"
+        
+        data = {
+            "avg_throttle": self.avg_throttle,
+            "images_taken": self.counter,
+            "time_ended": time.time()
+        }
+
+        with open(path, 'w+', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
 
 if __name__ == '__main__':
     try:
@@ -79,7 +101,8 @@ if __name__ == '__main__':
             folder_name = random.randint(1000, 9999)
 
         print("Starting Datarecorder...")
-        DataRecorder(folder_name)
+        recorder = DataRecorder(folder_name)
         rospy.spin()
     except rospy.ROSInterruptException as e:
+        recorder.end()
         rospy.loginfo("Goodbye.")
