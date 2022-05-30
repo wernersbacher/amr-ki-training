@@ -40,9 +40,11 @@ class DataRecorder:
 
         rospy.loginfo(f"Saving images in {self.base_path}. \n Stop with Strg+C")
 
-    def update_avg_throttle():
+    def update_avg_throttle(self):
         """ update the average throttle recorded"""
         avg = (self.avg_throttle*self._avg_counter + self.throttle)/(self._avg_counter + 1)
+        #print(self.avg_throttle*self._avg_counter, self.throttle)
+        self._avg_counter += 1
         self.avg_throttle = avg
 
 
@@ -68,7 +70,7 @@ class DataRecorder:
 
         rospy.logdebug(f"Received an image, processing...")
 
-        file_name = f"img_{self.counter}_{self.throttle:.4f}_{self.steering:.4f}_{time.time()}.png"
+        file_name = f"img_{self.counter:04d}_{self.throttle:.4f}_{self.steering:.4f}_{time.time()}.png"
         path = f"{self.base_path}{file_name}"
         m1 = time.time()
         cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')	
@@ -104,5 +106,8 @@ if __name__ == '__main__':
         recorder = DataRecorder(folder_name)
         rospy.spin()
     except rospy.ROSInterruptException as e:
-        recorder.end()
-        rospy.loginfo("Goodbye.")
+        pass 
+
+    
+    recorder.end()
+    rospy.loginfo("Goodbye.")
