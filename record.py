@@ -26,6 +26,8 @@ class DataRecorder:
         self.avg_throttle = 0
         self._avg_counter = 0
 
+        self.started = False
+
         # --- Create the Subscriber to Twist commands
         self.subscriber_twist = rospy.Subscriber("/cmd_vel", Twist, self.update_twist)
         self.subscriber_img = rospy.Subscriber("/camera/image_raw", Image, self.update_img)
@@ -36,9 +38,22 @@ class DataRecorder:
         self.last_imgage_saved = 0
 
         self.base_path = f"/var/recorded_data/{self.folder_name}/"
-        os.mkdir(self.base_path)
+
+        self.mkdir()
+
+
 
         rospy.loginfo(f"Saving images in {self.base_path}. \n Stop with Strg+C")
+
+    def mkdir(self):
+        
+        while True:
+            try:
+                os.mkdir(self.base_path)
+                break
+            except:
+                loginfo("Path already existing, creating a second one")
+                self.base_path = self.base_path+"+"
 
     def update_avg_throttle(self):
         """ update the average throttle recorded"""
@@ -55,6 +70,10 @@ class DataRecorder:
         self.update_avg_throttle()
         rospy.logdebug(f"Updated current throttle and steering to {self.throttle, self.steering}")
 
+        # only start if start gets received first time
+        if self.throttle > 0 and not self.started:
+            self.started = True
+
     def update_img(self, msg):
 
         now = time.time()
@@ -63,7 +82,7 @@ class DataRecorder:
             rospy.logdebug("Skipping frame.")
             return
 
-        if self.throttle <= 0:  # only capturing frames if driving forwards (throttle > 0)
+        if not self.started:  # only capturing frames if driving forwards (throttle > 0)
             return
             
         self.last_imgage_saved = now
